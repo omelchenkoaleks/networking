@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../network/recipe_model.dart';
@@ -9,6 +8,7 @@ import '../colors.dart';
 import '../recipe_card.dart';
 import '../widgets/custom_dropdown.dart';
 import 'recipe_details.dart';
+import '../../network/recipe_service.dart';
 
 class RecipeList extends StatefulWidget {
   const RecipeList({Key? key}) : super(key: key);
@@ -23,8 +23,7 @@ class _RecipeListState extends State<RecipeList> {
   late TextEditingController searchTextController;
   final ScrollController _scrollController = ScrollController();
 
-  // TODO: Replace with new API class
-  List currentSearchList = [];
+  List<APIHits> currentSearchList = [];
   int currentCount = 0;
   int currentStartPosition = 0;
   int currentEndPosition = 20;
