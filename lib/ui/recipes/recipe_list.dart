@@ -62,7 +62,15 @@ class _RecipeListState extends State<RecipeList> {
       });
   }
 
-  // TODO: Add getRecipeData() here
+  // The method is asynchronous and returns a Future. It takes a query and the start and the end positions of the recipe data, which from and to represent, respectively.
+  Future<APIRecipeQuery> getRecipeData(String query, int from, int to) async {
+    // Define recipeJson, which stores the results from RecipeService().getRecipes() after it finishes.
+    final recipeJson = await RecipeService().getRecipes(query, from, to);
+    // The variable recipeMap uses Dart’s json.decode() to decode the string into a map of type Map<String, dynamic>.
+    final recipeMap = json.decode(recipeJson);
+    // Use the JSON parsing method to create an APIRecipeQuery model.
+    return APIRecipeQuery.fromJson(recipeMap);
+  }
 
   // TODO: Delete loadRecipes()
   Future loadRecipes() async {
@@ -210,7 +218,34 @@ class _RecipeListState extends State<RecipeList> {
     );
   }
 
-  // TODO: Add _buildRecipeList()
+  // This method returns a widget and takes recipeListContext and a list of recipe hits.
+  Widget _buildRecipeList(BuildContext recipeListContext, List<APIHits> hits) {
+    // You use MediaQuery to get the device’s screen size.
+    final size = MediaQuery.of(context).size;
+    // Set a fixed item height.
+    const itemHeight = 310;
+    // Create two columns of cards whose width is half the device’s width.
+    final itemWidth = size.width / 2;
+    // Return a widget that’s flexible in width and height.
+    return Flexible(
+      // GridView is similar to ListView, but it allows for some interesting combinations of rows and columns. In this case, use GridView.builder() because you know the number of items and use an itemBuilder.
+      child: GridView.builder(
+        // Use _scrollController, created in initState(), to detect when scrolling gets to about 70% from the bottom.
+        controller: _scrollController,
+        // The SliverGridDelegateWithFixedCrossAxisCount delegate has two columns and sets the aspect ratio.
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: (itemWidth / itemHeight),
+        ),
+        // The length of grid items depends on the number of items in the hits list.
+        itemCount: hits.length,
+        // itemBuilder now uses _buildRecipeCard() to return a card for each recipe. _buildRecipeCard() retrieves the recipe from the hits list by using hits[index].recipe.
+        itemBuilder: (BuildContext context, int index) {
+          return _buildRecipeCard(recipeListContext, hits, index);
+        },
+      ),
+    );
+  }
 
   Widget _buildRecipeCard(
       BuildContext topLevelContext, List<APIHits> hits, int index) {
