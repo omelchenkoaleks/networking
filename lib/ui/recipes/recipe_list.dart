@@ -32,13 +32,10 @@ class _RecipeListState extends State<RecipeList> {
   bool loading = false;
   bool inErrorState = false;
   List<String> previousSearches = <String>[];
-  APIRecipeQuery? _currentRecipes1 = null;
 
   @override
   void initState() {
     super.initState();
-    // TODO: Remove call to loadRecipes()
-    loadRecipes();
     getPreviousSearches();
     searchTextController = TextEditingController(text: '');
     _scrollController
@@ -70,14 +67,6 @@ class _RecipeListState extends State<RecipeList> {
     final recipeMap = json.decode(recipeJson);
     // Use the JSON parsing method to create an APIRecipeQuery model.
     return APIRecipeQuery.fromJson(recipeMap);
-  }
-
-  // TODO: Delete loadRecipes()
-  Future loadRecipes() async {
-    final jsonString = await rootBundle.loadString('assets/recipes1.json');
-    setState(() {
-      _currentRecipes1 = APIRecipeQuery.fromJson(jsonDecode(jsonString));
-    });
   }
 
   @override
@@ -207,14 +196,56 @@ class _RecipeListState extends State<RecipeList> {
     });
   }
 
-  // TODO: Replace this _buildRecipeLoader definition
   Widget _buildRecipeLoader(BuildContext context) {
-    if (_currentRecipes1 == null || _currentRecipes1?.hits == null) {
+    // Check there are at least three characters in the search term.
+    if (searchTextController.text.length < 3) {
       return Container();
     }
-    // Show a loading indicator while waiting for the recipes
-    return Center(
-      child: _buildRecipeCard(context, _currentRecipes1!.hits, 0),
+    // FutureBuilder determines the current state of the Future that APIRecipeQuery returns. It then builds a widget that displays asynchronous data while it’s loading.
+    return FutureBuilder<APIRecipeQuery>(
+      // Assign the Future that getRecipeData returns to future.
+      future: getRecipeData(searchTextController.text.trim(),
+          currentStartPosition, currentEndPosition),
+      // builder is required; it returns a widget.
+      builder: (context, snapshot) {
+        // Check the connectionState. If the state is done, you can update the UI with the results or an error.
+        if (snapshot.connectionState == ConnectionState.done) {
+          // If there’s an error, return a simple Text element that displays the error message.
+          if (snapshot.hasError) {
+            return Center(
+              child: Text(snapshot.error.toString(),
+                  textAlign: TextAlign.center, textScaleFactor: 1.3),
+            );
+          }
+
+          // If there’s no error, process the query results and add query.hits to currentSearchList.
+          loading = false;
+          final query = snapshot.data;
+          inErrorState = false;
+          if (query != null) {
+            currentCount = query.count;
+            hasMore = query.more;
+            currentSearchList.addAll(query.hits);
+            // If you aren’t at the end of the data, set currentEndPosition to the current location.
+            if (query.to < currentEndPosition) {
+              currentEndPosition = query.to;
+            }
+          }
+          // Return _buildRecipeList() using currentSearchList.
+          return _buildRecipeList(context, currentSearchList);
+        }
+        // Check that snapshot.connectionState isn’t done.
+        else {
+          // If the current count is 0, show a progress indicator.
+          if (currentCount == 0) {
+            // Show a loading indicator while waiting for the recipes
+            return const Center(child: CircularProgressIndicator());
+          } else {
+            // Otherwise, just show the current list.
+            return _buildRecipeList(context, currentSearchList);
+          }
+        }
+      },
     );
   }
 
